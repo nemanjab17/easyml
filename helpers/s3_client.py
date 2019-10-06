@@ -7,7 +7,6 @@ s3 = boto3.client(
    aws_secret_access_key=os.environ.get("S3_SECRET_ACCESS_KEY")
 )
 
-
 def upload_file_to_s3(file, bucket_name, acl="public-read"):
 
     try:

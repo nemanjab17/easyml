@@ -1,20 +1,33 @@
 from flask import Flask, make_response, jsonify
+application = Flask(__name__)
+PORT = 5000
+DEBUG = True
+
+# import routes for different modules
 from filesystem.routes import file_system_blueprint
 from algorithms.routes import algorithms
 from auth.routes import auth_blueprint
-from resources.test import test_blueprint
-import inject
-from algorithms.base_interface import LogisticInterface
+
+
+application.register_blueprint(file_system_blueprint, url_prefix='/files')
+application.register_blueprint(algorithms, url_prefix='/algorithm')
+application.register_blueprint(auth_blueprint, url_prefix='/auth')
+application.config['TRAP_HTTP_EXCEPTIONS']=True
+
+
+# initialize database and prepare session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
-
 from database.db import DB_URI
-from easyml_util.exceptions import EasyMLExceptions
 
 engine = create_engine(DB_URI)
 db_session = scoped_session(sessionmaker(autocommit=False,
                                          autoflush=False,
                                          bind=engine))
+
+# inject dependencies
+import inject
+from algorithms.base_interface import LogisticInterface
 
 
 def config(binder):
@@ -25,7 +38,8 @@ def config(binder):
 
 inject.configure(config)
 
-application = Flask(__name__)
+# register common exception handler in flask middleware
+from easyml_util.exceptions import EasyMLExceptions
 
 
 @application.errorhandler(EasyMLExceptions)
@@ -35,14 +49,16 @@ def error_handler(error):
     })), error.code
 
 
-application.register_blueprint(file_system_blueprint, url_prefix='/files')
-application.register_blueprint(algorithms, url_prefix='/algorithm')
-application.register_blueprint(test_blueprint, url_prefix='/test')
-application.register_blueprint(auth_blueprint, url_prefix='/auth')
+application.register_error_handler(Exception, error_handler)
+
+@application.route("/", methods=["GET"])
+def status_handler():
+    return make_response(jsonify({
+        "Application": "Easyml",
+        "Running on port": PORT,
+        "Status": "Running"
+    })), 200
+
 
 if __name__ == '__main__':
-    application.run(debug=True)
-
-
-
-
+    application.run(debug=DEBUG, port=PORT)
