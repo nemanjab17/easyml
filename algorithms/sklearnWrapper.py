@@ -1,15 +1,13 @@
 from helpers.tableImage import TableImage
 
 
-class sklearnwrapper:
-    """"""
+class SklearnWrapper:
 
-    def __init__(self, metadata):
-        """Constructor for sklearnwrapper"""
-        self.columntypes = metadata['columntypes']
-        self.datasetname = metadata['datasetname']
-        self.algname = metadata['algname']
-        self.algparams = metadata['algparams']
+    def __init__(self, algorithm, parameters):
+        self.column_types = metadata['columntypes']
+        self.dataset_name = metadata['datasetname']
+        self.alg_name = metadata['algname']
+        self.alg_params = metadata['algparams']
         self.metrics = metadata['metrics']
 
     def run(self):

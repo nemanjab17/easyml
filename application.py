@@ -10,10 +10,12 @@ from auth.routes import auth_blueprint
 
 
 application.register_blueprint(file_system_blueprint, url_prefix='/files')
-application.register_blueprint(algorithms, url_prefix='/algorithm')
+application.register_blueprint(algorithms, url_prefix='/algorithms')
 application.register_blueprint(auth_blueprint, url_prefix='/auth')
+
 application.config['TRAP_HTTP_EXCEPTIONS']=True
 
+application.config['UPLOAD_FOLDER'] = "/Users/nemanja/Documents/Deve/easyml/uploads"
 
 # initialize database and prepare session
 from sqlalchemy import create_engine
@@ -47,6 +49,12 @@ def error_handler(error):
     return make_response(jsonify({
         "message": error.message
     })), error.code
+
+# @application.errorhandler(Exception)
+# def error_handler(error):
+#     return make_response(jsonify({
+#         "message": str(error)
+#     })), 500
 
 
 application.register_error_handler(Exception, error_handler)

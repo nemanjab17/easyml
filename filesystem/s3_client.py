@@ -6,10 +6,15 @@ from database.models import FileRecord
 from easyml_util.exceptions import (
     EasyMLBoto3Exception,
     EasyMLSQLAlchemyException,
-    ResourceNotFoundException
+    ResourceNotFoundException,
+    NotProcessableException
     )
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import load_only
 from helpers.converters import sqlalch_list_to_json
+import pandas as pd
+
+import os
 
 
 class S3Client:
@@ -27,9 +32,6 @@ class S3Client:
                                aws_access_key_id=aws_access_key_id,
                                aws_secret_access_key=aws_secret_access_key)
     bucket = "easymlfiles"
-
-    def download_file(self, file_id):
-        pass
 
     def save_file(self, file_obj, file_id, acl="public-read"):
         try:
@@ -56,12 +58,13 @@ class S3Client:
             print(e)
             raise EasyMLBoto3Exception()
 
-    def get_file(self, file_id):
-        """
-        Na osnovu id-a vraca podatke o fajlu.
-        :return:
-        """
-        pass
+    def download_file(self, file_id, foler_path):
+        # download file from s3 to temp folder
+        self.s3_client.download_file(
+            self.bucket,
+            file_id,
+            foler_path
+            )
 
 
 class FileMapper:
@@ -71,7 +74,7 @@ class FileMapper:
 
     def get_file(self, file_id):
         try:
-            return self.session.query(FileRecord).filter(id==file_id).first()
+            return self.session.query(FileRecord).filter(FileRecord.id==file_id).first()
         except SQLAlchemyError as e:
             print(e)
             raise EasyMLSQLAlchemyException()
@@ -86,26 +89,32 @@ class FileMapper:
             print(e)
             raise EasyMLSQLAlchemyException()
 
-    def get_files_of_user(self, user_id):
+    def get_files_of_user(self, user_id, cols=None):
         try:
             objects = self.session.query(FileRecord).filter(user_id==user_id).all()
-            return sqlalch_list_to_json(objects)
+            return sqlalch_list_to_json(objects, cols)
         except SQLAlchemyError as e:
             print(e)
             raise EasyMLSQLAlchemyException()
 
-    def add_file(self, file_obj, file_id, user_id):
+    def add_file(self, file_obj, file_id, user_id, header):
         try:
+
             file_record = FileRecord(
                 id=file_id,
                 filename=file_obj.filename,
                 content_type=file_obj.content_type,
-                user_id=user_id
+                user_id=user_id,
+                header=header
                 )
             self.session.add(file_record)
         except SQLAlchemyError as e:
             print(e)
             raise EasyMLSQLAlchemyException()
+
+    def add_header_metadata(self, file_id, metadata):
+        record = self.session.query(FileRecord).filter(FileRecord.id==file_id).first()
+        record.header = metadata
 
     def commit(self):
         try:
@@ -124,23 +133,26 @@ class FileMapper:
 
 class FileManager:
 
+    temp_folder_path = "uploads"
+
     def __init__(self):
         self.s3 = S3Client()
         self.db = FileMapper()
 
-    def get_files_of_user(self, user_id):
-        return self.db.get_files_of_user(user_id)
+    def get_files_of_user(self, user_id, cols=None):
+        return self.db.get_files_of_user(user_id, cols)
 
-    def save_file(self, file_obj, user_id):
+    def save_file(self, file_obj, user_id, header):
         try:
             file_id = str(uuid.uuid4())
             self.s3.save_file(file_obj, file_id)
-            self.db.add_file(file_obj, file_id, user_id)
+            self.db.add_file(file_obj, file_id, user_id, header)
             self.db.commit()
+
             return file_id
         except Exception as e:
-            print(e)
             self.db.rollback()
+            raise e
 
     def remove_file(self, file_id):
         self.s3.remove_file(file_id)
@@ -150,7 +162,25 @@ class FileManager:
     def download_file(self, file_id):
         pass
 
-    def get_file(self, file_id):
-        self.db.get_file(file_id)
+    def get_file_header(self, file_id):
+        file = self.db.get_file(file_id)
+        return file.header
 
-
+    def add_header_metadata(self, file_id, metadata):
+        header = self.get_file_header(file_id)
+        if not len(header) == len(metadata.keys()):
+            raise NotProcessableException(
+                "Meta data parsing failed."
+                "Columns do not match the header of the file."
+            )
+        metadata_cols = list(metadata.keys())
+        prev_cols = header if isinstance(header, list) else list(header.keys())
+        for i in range(len(prev_cols)):
+            if prev_cols[i] != metadata_cols[i]:
+                raise NotProcessableException(
+                    "Meta data parsing failed."
+                    "Columns do not match the header of the file."
+                )
+        self.db.add_header_metadata(file_id, metadata)
+        self.db.commit()
+        return metadata

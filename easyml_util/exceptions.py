@@ -45,3 +45,10 @@ class ResourceNotFoundException(EasyMLExceptions):
         super().__init__()
         self.code = http.HTTPStatus.NOT_FOUND
         self.message = message
+
+
+class NotProcessableException(EasyMLExceptions):
+    def __init__(self, message="Resource not processable. Check the rules associated with it."):
+        super().__init__()
+        self.code = http.HTTPStatus.UNPROCESSABLE_ENTITY
+        self.message = message

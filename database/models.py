@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, JSON
 from database.db import Base
 
 
@@ -18,10 +18,18 @@ class FileRecord(Base):
     id = Column(String(40), primary_key=True)
     filename = Column(String(50), unique=False)
     content_type = Column(String(50), unique=False)
+    header = Column(JSON, unique=False)
     user_id = Column(Integer, ForeignKey('users.id'))
 
     def __repr__(self):
         return '<File %r>' % self.filename
 
-    def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+    def as_dict(self, cols=None):
+        result = {}
+        for c in self.__table__.columns:
+            if cols:
+                if c.name in cols:
+                    result[c.name] = getattr(self, c.name)
+            else:
+                result[c.name] = getattr(self, c.name)
+        return result
