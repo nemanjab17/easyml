@@ -1,5 +1,5 @@
 import json
-from config import logistic_regression
+from algorithms.alg_data import logistic_regression
 
 
 class BaseInterface:

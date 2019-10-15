@@ -1,6 +1,6 @@
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
-logistic_regression = ["penalty", "c", "solver", "maxiter"]
+
 
 
 class Config(object):

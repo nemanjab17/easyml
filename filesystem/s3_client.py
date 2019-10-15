@@ -21,8 +21,8 @@ class S3Client:
     """
     S3Client klasa prihvata
     """
-    aws_access_key_id = "AKIAJDVPU5LYQXY7XKJA"
-    aws_secret_access_key = "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"
+    aws_access_key_id = os.environ.get("id")
+    aws_secret_access_key = os.environ.get("key")
 
     s3_client = boto3.client("s3",
                             aws_access_key_id=aws_access_key_id,

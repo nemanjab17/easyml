@@ -27,6 +27,13 @@ db_session = scoped_session(sessionmaker(autocommit=False,
                                          autoflush=False,
                                          bind=engine))
 
+
+
+from alembic.config import Config
+from alembic import command
+alembic_cfg = Config("database/alembic.ini")
+command.stamp(alembic_cfg, "head")
+
 # inject dependencies
 import inject
 from algorithms.base_interface import LogisticInterface
@@ -50,13 +57,6 @@ def error_handler(error):
         "message": error.message
     })), error.code
 
-# @application.errorhandler(Exception)
-# def error_handler(error):
-#     return make_response(jsonify({
-#         "message": str(error)
-#     })), 500
-
-
 application.register_error_handler(Exception, error_handler)
 
 @application.route("/", methods=["GET"])
@@ -69,4 +69,4 @@ def status_handler():
 
 
 if __name__ == '__main__':
-    application.run(debug=DEBUG, port=PORT)
+    application.run(debug=DEBUG, port=PORT, host="0.0.0.0")
