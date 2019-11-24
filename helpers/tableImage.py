@@ -1,4 +1,6 @@
 import pandas as pd
+
+
 class TableImage:
 
     def __init__(self, table_name, type=None):

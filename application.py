@@ -29,10 +29,6 @@ db_session = scoped_session(sessionmaker(autocommit=False,
 
 
 
-from alembic.config import Config
-from alembic import command
-alembic_cfg = Config("database/alembic.ini")
-command.stamp(alembic_cfg, "head")
 
 # inject dependencies
 import inject
@@ -57,7 +53,9 @@ def error_handler(error):
         "message": error.message
     })), error.code
 
+
 application.register_error_handler(Exception, error_handler)
+
 
 @application.route("/", methods=["GET"])
 def status_handler():
