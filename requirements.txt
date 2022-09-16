@@ -22,7 +22,7 @@ jmespath==0.9.4
 joblib==0.14.0
 keyring==9.0
 keyrings.alt==3.1.1
-Mako==1.1.0
+Mako==1.2.2
 MarkupSafe==1.1.1
 numpy==1.17.2
 pandas==0.25.1
